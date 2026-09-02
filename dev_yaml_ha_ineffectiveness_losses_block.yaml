@@ -1,0 +1,13 @@
+# Paste under the existing top-level `curation:` key in src/rda/configs/dev.yaml,
+# next to ha_ineffectiveness_curation. Mirror into qa.yaml and uat.yaml.
+#
+# Both input tables already exist - irr_ear_reporting_partial_dv01 is the 2.1
+# output, and irr_ear_reporting_rf_ear_shocks_raw is already declared for non_ha.
+
+  ha_ineffectiveness_losses_curation:
+    inputs:
+      partial_dv01: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_partial_dv01
+      rf_ear_shocks: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_rf_ear_shocks_raw
+    watermark_col: "INGESTION_TS"
+    curation_table: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_losses
+    curation_ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_losses
