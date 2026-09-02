@@ -1,0 +1,68 @@
+Now the above table is created successfully, let's jump to another.
+Using the existing developed curation table from 2.1 which is irr_ear_reporting_partial_dv01
+Now for 2.2, The other input tables are: 
+gfdo_dev_catalog.gft_rda_raw.irr_ear_reporting_rf_ear_shocks_raw
+
+ATTACHING Sample file of irr_ear_reporting_rf_ear_shocks_raw, the output table extract of irr_ear_reporting_partial_dv01
+
+The STM is there. Deriving 6 columns. (LOOK AT THE SHEETNAME: irr_ear_reporting_losses)
+
+losses_liab_no gamma
+losses_liab_with gamma (we need the Gamma data. Dependency on IR-Gamma, currently still in development) - On Hold for now this column
+losses_ha_liab
+losses_ha_bond
+losses_manubank
+losses_ha
+
+ALL COLUMNS REQUIRED FOR THIS TABLE ARE:
+
+currency
+Report Date
+Scenario
+LOWEST_LEVEL_PORTFOLIO_NAME
+ir_gamma   (ON HOLD FOR NOW)
+losses_liab_no gamma
+losses_liab_with gamma  ((ON HOLD FOR NOW))
+losses_ha_liab
+losses_ha_bond
+losses_manubank
+losses_ha
+
+Now for the column:
+losses_liab_no gamma (the defined logic : [ Sum of (Scenario 1{sum_partial_dv01 group by currency, asset_holding = liability*Shocks}0.25+{sum_partial_dv01 * Shocks }0.5+….+{sum_partial_dv01* Shocks }30)]*100 for asset_holding = liability
+
+what it is? For the given SECURITY_CURRENCY and asset_holding= "Liability", map it with the CURRENCY in the irr_ear_reporting_rf_ear_shocks_raw. And for every currency, we will find 5000 scenarios in the column "SCENARIO"
+and the shock value associted to each scenario in the "Shock" column.
+
+Now for the "losses_liab_no gamma" Column, we need to multiply the Sum_partial_dv01 from 2.1 table(irr_ear_reporting_partial_dv01) with the each scenario shock value for all the tenors.
+Example, for AUD currency, we will have 10 tenor columns (0.25 to 30). So for each scenario (Example Scenario value "1"), the sum_partial_dv01 value must be multiplied and sum the individual tenor, scenario values for all tenors at last.
+Once we sumed up, the value needs to be multipled with 100. This process continues for all 5000 scenarios.
+
+irr_ear_reporting_partial_dv01 (For currency "AUD" and LLP "MLRL AUD-Guaranteed"
+
+EPORT_DATE	SECURITY_CURRENCY	ASSET_HOLDING	TENOR_CD	PROGRAM_CODE	LOWEST_LEVEL_PORTFOLIO_NAME	LEGAL_ID	TOTAL_DV01	FX_RATE	TAX_RATE	SUM_PARTIAL_DV01	INGESTION_TS
+4/30/2026	AUD	Liability	0.25	GH_01	MLRL AUD-Guaranteed	391	-4309.9341	0.978563	0.02	-4133.191202	2026-09-01T17:00:49.994391Z
+
+
+
+CURRENCY	TENOR	SCENARIO	SHOCKS	EFFECTIVE_DATE	LOAD_TS	SOURCE	CREATED_BY	INGESTION_TS	Sum_partial_dv01 * Shock
+aud	0.25	1	3.349218496	3/31/2026	2026-03-05T15:06:50.000Z	dbo.RF_EaR_Shocks | Slice: 2026-03-04 16:26:13 to 2026-03-05 15:06:50	ADB	2026-03-25T11:47:37.493Z	-13842.96042
+aud	0.5	1	3.431855476	3/31/2026	2026-03-05T15:06:50.000Z	dbo.RF_EaR_Shocks | Slice: 2026-03-04 16:26:13 to 2026-03-05 15:06:50	ADB	2026-03-25T11:47:37.493Z	-14184.51486
+aud	1	1	3.599027678	3/31/2026	2026-03-05T15:06:50.000Z	dbo.RF_EaR_Shocks | Slice: 2026-03-04 16:26:13 to 2026-03-05 15:06:50	ADB	2026-03-25T11:47:37.493Z	-14875.46954
+aud	2	1	3.948298941	3/31/2026	2026-03-05T15:06:50.000Z	dbo.RF_EaR_Shocks | Slice: 2026-03-04 16:26:13 to 2026-03-05 15:06:50	ADB	2026-03-25T11:47:37.493Z	-16319.07445
+aud	3	1	4.140534717	3/31/2026	2026-03-05T15:06:50.000Z	dbo.RF_EaR_Shocks | Slice: 2026-03-04 16:26:13 to 2026-03-05 15:06:50	ADB	2026-03-25T11:47:37.493Z	-17113.62166
+aud	5	1	4.260812179	3/31/2026	2026-03-05T15:06:50.000Z	dbo.RF_EaR_Shocks | Slice: 2026-03-04 16:26:13 to 2026-03-05 15:06:50	ADB	2026-03-25T11:47:37.493Z	-17610.75141
+aud	7	1	4.441135678	3/31/2026	2026-03-05T15:06:50.000Z	dbo.RF_EaR_Shocks | Slice: 2026-03-04 16:26:13 to 2026-03-05 15:06:50	ADB	2026-03-25T11:47:37.493Z	-18356.06291
+aud	10	1	4.648724036	3/31/2026	2026-03-05T15:06:50.000Z	dbo.RF_EaR_Shocks | Slice: 2026-03-04 16:26:13 to 2026-03-05 15:06:50	ADB	2026-03-25T11:47:37.493Z	-19214.06529
+aud	20	1	5.061483451	3/31/2026	2026-03-05T15:06:50.000Z	dbo.RF_EaR_Shocks | Slice: 2026-03-04 16:26:13 to 2026-03-05 15:06:50	ADB	2026-03-25T11:47:37.493Z	-20920.07887
+aud	30	1	5.087842315	3/31/2026	2026-03-05T15:06:50.000Z	dbo.RF_EaR_Shocks | Slice: 2026-03-04 16:26:13 to 2026-03-05 15:06:50	ADB	2026-03-25T11:47:37.493Z	-21029.02509
+
+
+Final Result
+Currency	Report Date	Scenario 	Lowest Level Portfolio	losses_liab_no gamma
+AUD	4/30/2026	1	MLRL AUD-Guaranteed	-17346562.45
+
+The irr_ear_reporting_partial_dv01 table security_currency will have multiple LLPs. The process should follow for each LLP and for all 5000 scenarios. 
+
+
+Let's derive this column for now and rest of the columns we will derive once this is correct.
