@@ -32,3 +32,12 @@ aud	30	1	5.087842315	3/31/2026	2026-03-05T15:06:50.000Z	dbo.RF_EaR_Shocks | Slic
 Now, for currency = AUD and Tenor = 0.25 and scenario =1, multiply (1215.30028024569(sumpartial_dv_01 value) * 3.34921849615406 (shock Value)) * 100
 
 This would give us the Losses_liab_no_gamma
+
+
+Final Table would be:
+
+SECURITY_CURRENCY	ASSET_HOLDING	LOWEST_LEVEL_PORTFOLIO_NAME	LEGAL_ID	SCENARIO	losses liab no gamma
+AUD	Liability	MLRL AUD-Guaranteed	176	1	1925472468
+
+Like each currency and its one llp (according to legal id) would have 5000 scenario rows. And for each scenario the process should be the same.
+
