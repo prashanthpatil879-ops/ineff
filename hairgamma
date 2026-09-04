@@ -1,0 +1,49 @@
+class HAIRGammaInputs(NamedTuple):
+    asset_summary_df: DataFrame
+    ha_fi_sensitivity_obs_df: DataFrame
+    hedge_proportion_df: DataFrame
+    liab_cf_df: DataFrame
+    fwd_crv_df: DataFrame
+ 
+ 
+class HAIRGamma(RDABaseStep):
+ 
+    def read(self) -> HAIRGammaInputs:
+        inputs = self._step_config.inputs
+        last_quarter_end_date = self._date_ctx.asDict().get('PREVIOUSQUARTERENDDATE', None)
+        next_month_first_day = du.get_next_month_first_day(last_quarter_end_date)
+        self._logger.info(f"Reading inputs for HA IR Gamma process, Quarter End Date: {last_quarter_end_date}, Next Month First Day: {next_month_first_day}")
+ 
+        if last_quarter_end_date is None:
+            raise ValueError(f"Invalid date context entry for PREVIOUSQUARTERENDDATE in: {self._date_ctx.asDict()}")
+ 
+        input_dfs = HAIRGammaInputs(
+            asset_summary_df = self._uc.read_latest(
+                inputs.asset_summary_bd09.table_name,
+                filter=f"REPORT_DATE='{last_quarter_end_date}' AND HEDGE_PROGRAM is not NULL AND IS_DERIVATIVES=1",
+                watermark_col=inputs.asset_summary_bd09.watermark_col
+            ),
+            ha_fi_sensitivity_obs_df = self._uc.read_latest(
+                inputs.ha_fi_sensitivity_obs.table_name,
+                filter=f"REPORT_DATE='{next_month_first_day}' AND HEDGE_PROGRAM='GH_09'",
+                watermark_col=inputs.ha_fi_sensitivity_obs.watermark_col
+            ),
+            hedge_proportion_df = self._uc.read_latest(
+                inputs.hedge_proportion.table_name,
+                filter=f"EFFECTIVE_DATE='{next_month_first_day}'",
+                watermark_col=inputs.hedge_proportion.watermark_col
+            ),
+            liab_cf_df = self._uc.read_latest(
+                inputs.liab_cf.table_name,
+                filter=f"AS_OF_DATE='{last_quarter_end_date}'",
+                watermark_col=inputs.liab_cf.watermark_col
+            ),
+            fwd_crv_df = self._uc.read_latest(
+                inputs.fwd_crv.table_name,
+                filter=f"REPORTING_DATE='{last_quarter_end_date}'",
+                watermark_col=inputs.fwd_crv.watermark_col
+            )
+        )
+ 
+        self.validate_inputs(input_dfs)
+        return input_dfs
