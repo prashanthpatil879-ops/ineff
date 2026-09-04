@@ -1,0 +1,934 @@
+env: dev
+catalog: gfdo_dev_catalog
+secret_scope: cacd-gftsupp-risk-akv-scope
+
+logging:
+  level: INFO
+
+env_table_prefix: ""
+
+secrets:
+  tenant_id_key: RDATenantId
+  client_id_key: RDASPNId
+  client_secret_key: RDASPNSecret
+
+artifactory:
+  url: artifactory.platform.manulife.io/artifactory/api/pypi/pypi-remote/simple
+  serviceaccount_key: RDAServiceAccount
+  token_key: RDAArtifactoryToken
+
+sqlmi:
+  server: "azcacsqlgftrdagen2dev.database.windows.net"
+  database: "RDAGen2DB"
+  hostNameInCertificate: "*.database.windows.net"
+
+ec_table_prefix: irr_ec_forecasting
+ear_table_prefix: irr_ear_reporting
+ear_forecast_table_prefix: irr_ear_forecast
+stresstest_prefix: stresstest
+
+schema:
+  raw: ${catalog}.gft_rda_raw
+  curation: ${catalog}.gft_rda_curation
+  semantic: ${catalog}.gft_rda_semantic
+
+adls:
+  storage_account: cacdgftsuppriskadls
+  rda-app: abfss://rda-app@${adls.storage_account}.dfs.core.windows.net
+  landing: abfss://rda-landing@${adls.storage_account}.dfs.core.windows.net
+  raw: abfss://rda-raw@${adls.storage_account}.dfs.core.windows.net
+  curation: abfss://rda-curated@${adls.storage_account}.dfs.core.windows.net
+  semantic: abfss://rda-semantic@${adls.storage_account}.dfs.core.windows.net
+  archive: abfss://rda-archive@${adls.storage_account}.dfs.core.windows.net
+
+
+common:
+  ear_forecast_rda_run:
+    rda_run_table: ${schema.curation}.${env_table_prefix}${ear_forecast_table_prefix}_rda_run
+    rda_run_ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_forecast_table_prefix}_rda_run
+  config_files:
+    config: ${adls.rda-app}/Config/${env_table_prefix}Config.xlsx
+    gam: ${adls.rda-app}/Config/${env_table_prefix}GAMConfig.xlsx
+    alm: ${adls.rda-app}/Config/${env_table_prefix}ALMConfig.xlsx
+    segment_mapping: ${adls.rda-app}/Config/${env_table_prefix}SMConfig.xlsx
+    par_curve: ${adls.rda-app}/Config/${env_table_prefix}ParCurveConfig.xlsx
+    forecasting: ${adls.rda-app}/Config/${env_table_prefix}ForecastingConfig.xlsx
+    es_driven_impacts: ${adls.rda-app}/Config/${env_table_prefix}ESDrivenImpactsConfig.xlsx
+    economicsensitivities: ${adls.rda-app}/Config/${env_table_prefix}ESConfig.xlsx
+    embeddedsensitivity: ${adls.rda-app}/Config/${env_table_prefix}EmbeddedSensitivityConfig.xlsx
+
+ingest:
+  file:
+    gam_sensitivities:
+      landing: ${adls.landing}/${env_table_prefix}GAM/
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}GAM
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_forecast_table_prefix}_gam_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_forecast_table_prefix}_gam_raw
+      raw_table_without_scenario: ${schema.raw}.${env_table_prefix}${ear_forecast_table_prefix}_gam_raw_without_scenario
+      raw_ext_table_loc_without_scenario: ${adls.raw}/${env_table_prefix}${ear_forecast_table_prefix}_gam_raw_without_scenario
+      raw_table_mlrl: ${schema.raw}.${env_table_prefix}ifrs17_consolidated_sensitivities_results_mlrl_split_ratios
+      raw_ext_table_mlrl_loc: ${adls.raw}/${env_table_prefix}ifrs17_consolidated_sensitivities_results_mlrl_split_ratios
+      raw_table_dbpension: ${schema.raw}.${env_table_prefix}ifrs17_consolidated_sensitivities_results_db_pension
+      raw_ext_table_dbpension_loc: ${adls.raw}/${env_table_prefix}ifrs17_consolidated_sensitivities_results_db_pension
+      file_pattern: IFRS17.*Consolidated Sensitivities Results.*.xlsb
+    alm:
+      landing: ${adls.landing}/${env_table_prefix}ALM/
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}ALM
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_forecast_table_prefix}_alm_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_forecast_table_prefix}_alm_raw
+      file_pattern: IFRS17 Sensitivities Forecast.*.xlsx
+    gam_segmentmapping:
+      landing: ${adls.landing}/${env_table_prefix}SegmentMapping/
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}SegmentMapping
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_forecast_table_prefix}_segmentmapping_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_forecast_table_prefix}_segmentmapping_raw
+      file_pattern: IFRS17.*Consolidated Sensitivities Segment Mapping.*.xlsx
+    ear_par_curve:
+      landing: ${adls.landing}/${env_table_prefix}ParCurve/
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}ParCurve
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_forecast_table_prefix}_parcurve_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_forecast_table_prefix}_parcurve_raw
+      file_pattern: .*Interest Rate Report.*.xlsx
+    ear_reference_portfolio:
+      landing: ${adls.landing}/${env_table_prefix}ReferencePortfolio/
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}ReferencePortfolio
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_forecast_table_prefix}_referenceportfolio_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_forecast_table_prefix}_referenceportfolio_raw
+      file_pattern: .*ReferencePortfolios.*.xlsx
+    economicsensitivities:
+      landing: ${adls.landing}/${env_table_prefix}EconomicSensitivities/
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}EconomicSensitivities
+      raw_table: ${schema.raw}.${env_table_prefix}ifrs17_economic_sensitivities_template
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}ifrs17_economic_sensitivities_template
+      file_pattern: IFRS17.*economic sensitivities.*.xlsb
+    embeddedsensitivity:
+      landing: ${adls.landing}/${env_table_prefix}EmbeddedSensitivity/
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}EmbeddedSensitivity
+      raw_table: ${schema.raw}.${env_table_prefix}ca_us_sg_forecast
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}ca_us_sg_forecast
+      file_pattern: .*CA_US_SG - Forecast.*.xlsm
+    fx:
+      landing: ${adls.landing}/${env_table_prefix}FX/
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}FX
+      file_pattern: Monthly GAAP Rates Distribution file*.csv
+      file_format: csv
+      options:
+        header: true
+        inferSchema: true
+        delimiter: ","
+      column_renames:
+        old_col_names: ["IS/RATE", "BS/RATE"]
+        new_col_names: ["IS_RATE", "BS_RATE"]
+      partition_col: DATE
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_ifs_fx_rates_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_ifs_fx_rates_raw
+    parcurve_ec:
+      landing: ${adls.landing}/${env_table_prefix}ParCurveEC/
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}ParCurveEC
+      file_pattern: Market Curve sample file*
+      file_format: excel
+      sheets:
+        sheet1: 
+          options:
+            sheet_name: "Scope 2. Risk Free"
+            header: 0
+          column_renames:
+            old_col_names: ["Corp_Spread_Rating "]
+            new_col_names: ["Corp_Spread_Rating"]
+          column_drops: ["RMDB.dbo.v_CurveRates"]
+          column_adds:
+            RateType: "Risk Free"
+            UnderlyingDataDate: "NaN"
+        sheet2: 
+          options:
+            sheet_name: "Scope 1. Corp Spread"
+            header: 0
+          column_renames:
+            old_col_names: ["Corp_Spread_Rating "]
+            new_col_names: ["Corp_Spread_Rating"]
+          column_drops: ["RMDB.dbo.v_CurveAlmCorpRates"]
+          column_adds:
+            RateType: "Corp Spread"
+            UnderlyingDataDate: "NaN"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_alm_curve_rates_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_alm_curve_rates_raw
+    ec_lower_bound:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EC/LowerBound
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EC/LowerBound
+      file_pattern: RDA_EC_Lower*.csv
+      file_format: csv
+      options:
+        header: true
+        inferSchema: true
+        delimiter: ","
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_lower_bound_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_lower_bound_raw
+    ec_upper_bound:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EC/UpperBound
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EC/UpperBound
+      file_pattern: RDA_EC_Upper*.csv
+      file_format: csv
+      options:
+        header: true
+        inferSchema: true
+        delimiter: ","
+      raw_table: ${schema.raw}.${ec_table_prefix}_upper_bound_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_upper_bound_raw
+    ref_portfolio_code:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EC/RefPortCode
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EC/RefPortCode
+      file_pattern: RefPortCode*
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "in"
+            header: 0
+      raw_table: ${schema.raw}.${ec_table_prefix}_reference_portfolio_code_raw
+      raw_ext_table_loc: ${adls.raw}/${ec_table_prefix}_reference_portfolio_code_raw
+    exclusion_mapping:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EAR/ExclusionMapping
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EAR/ExclusionMapping
+      file_pattern: TAMSegment_Exclusion_Mapping*.csv
+      file_format: csv
+      options:
+        header: true
+        inferSchema: true
+        delimiter: ","
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_tamsegment_exclusion_mapping_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_tamsegment_exclusion_mapping_raw
+    iq_ec_forecast:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EC/IQECForecast
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EC/IQECForecast
+      file_pattern: IR EC*
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "IR EC"
+            header: 0
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_iq_ec_forecast_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_iq_ec_forecast_raw
+    factor_scenarios:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/StressTest/Factor Scenarios
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/StressTest/Factor Scenarios
+      file_pattern: "*.XLS"
+      file_format: excel
+      detail_config:
+        FACTOR:
+          sheet_name: "Factor"
+          detail_skiprows: 21
+          has_subtype: False
+          cast_column: "Shock"
+          metadata_configs:
+            - nrows: 8
+            - skiprows: 10
+              nrows: 10
+      mandatory_columns: ["Risk Model", "Scenario Type", "Correlated Mode", "Scenario Name"]
+      metadata_columns: ["Risk Model", "Scenario Type", "Correlated Mode", "Scenario Name", "Scenario Owner", "Base Currency", 
+                        "Credit Market", "Floor nominal rates to zero", "Interpolate rate shocks", "Enable full valuation for Securitized Assets", 
+                        "Apply Filter to Shock Variable", "Equity", "Currency", "Inflation", "Spread (DTS)", "Spread (Duration)", "Term Structure", 
+                        "Commodity", "Private Equity", "Private Real Estate", "Private Infrastructure"]
+      master_table:
+        raw_table: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_scenario_master_raw
+        raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${stresstest_prefix}_scenario_master_raw
+      scenario_table:
+        raw_table: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_b1_factor_scenario_raw
+        raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${stresstest_prefix}_b1_factor_scenario_raw
+    market_scenarios:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/StressTest/Market Scenarios
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/StressTest/Market Scenarios
+      file_pattern: "*.XLS"
+      file_format: excel
+      detail_config:
+        FACTOR:
+          sheet_name: "Market"
+          detail_skiprows: 12
+          has_subtype: True
+          cast_column: "Shock Amount"
+          metadata_configs:
+            - nrows: 11
+      mandatory_columns: ["Risk Model", "Scenario Type", "Correlated Mode", "Scenario Name"]
+      metadata_columns: ["Risk Model", "Scenario Type", "Correlated Mode", "Scenario Name", "Scenario Owner", "Base Currency", 
+                        "Credit Market", "Floor nominal rates to zero", "Interpolate rate shocks", "Enable full valuation for Securitized Assets", 
+                        "Apply Filter to Shock Variable", "Equity", "Currency", "Inflation", "Spread (DTS)", "Spread (Duration)", "Term Structure", 
+                        "Commodity", "Private Equity", "Private Real Estate", "Private Infrastructure"]
+      master_table:
+        raw_table: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_scenario_master_raw
+        raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${stresstest_prefix}_scenario_master_raw
+      scenario_table:
+        raw_table: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_b1_market_scenario_raw
+        raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${stresstest_prefix}_b1_market_scenario_raw
+    alm_liability_cf:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EC/ALM_Liability_CF
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EC/ALM_Liability_CF
+      file_pattern: ALM System Output*
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "Data"
+            header: 0
+          column_drops: ['Amount in CAD']  
+          column_type_overrides:
+            AS_OF_DATE: date
+            CASHFLOW_DATE: date
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_shev_liability_cf_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_shev_liability_cf_raw
+    ga_barraone_stress_test:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/StressTest/GA_BarraOne
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/StressTest/GA_BarraOne
+      file_pattern: GA Stress Test Data Final File Extract*.xlsx
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "File Extract"
+            header: 0
+          column_renames:
+            old_col_names: ["Portfolio Code", "Adjusted Asset Group", "Initial Market Value", "Analysis Date", "Scenario Name", "Risk Model", "Final Market Value", "P&L", "$P&L"]
+            new_col_names: ["PORTFOLIO_CODE", "ADJUSTED_ASSET_GROUP", "INITIAL_MARKET_VALUE", "ANALYSIS_DATE", "SCENARIO_NAME", "RISK_MODEL", "FINAL_MARKET_VALUE", "P&L_RATE", "PNL_AMT"]
+          column_type_overrides:
+            ANALYSIS_DATE: date
+      raw_table: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_ga_b1_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${stresstest_prefix}_ga_b1_raw
+    dv01_all_asset_derivative:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EAR/DV01
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EAR/DV01
+      file_pattern: DV01_Derivatives_ALL_Asset_Derivative_*.xlsx
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "Sheet1"
+            header: 0
+          column_type_overrides: 
+            RBL_INTERNAL_LENTITY: string
+            REPORT_DATE: date
+            MATURITY_DATE: date
+            MATURITY_DATE_FOR_VALUATION: date
+            RINGFENCE_EFFECTIVE_DATE: date
+            RINGFENCE_EXPIRY_DATE: date
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_dv01_all_asset_derivative_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_dv01_all_asset_derivative_raw
+    asset_summary_bd09:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EAR/Asset_Summary_BD09
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EAR/Asset_Summary_BD09
+      file_pattern: Asset_Summary_BD09_*.xlsx
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "Sheet1"
+            header: 0
+          column_type_overrides:
+            SUBFUND: string
+            ASSET_PRIMARYID: string
+            RBL_INTERNAL_LENTITY: string
+            REPORT_DATE: date
+            MATURITY_DATE: date
+            RINGFENCE_EFFECTIVE_DATE: date
+            RINGFENCE_EXPIRY_DATE: date
+            UPDATED_DATETIME: timestamp
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_asset_summary_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_asset_summary_raw
+    swap_spread_interest_rate_ec:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EC/InterestRateEC
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}InterestRateEC
+      exclude_values: ["US", "Asia", "Reinsurance", "Surplus", "Total Company", "LLP", "Country", "SS", "Current Quarter EC", "LLP Current Quarter EC"]
+      file_pattern: Interest Rate_EC*
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "#Swap Spread EC"
+            skiprows: 14
+            usecols: "D,F"
+            header: null
+            names:
+              - LLP_NAME
+              - AMOUNT
+          column_type_overrides:
+            AMOUNT: decimal
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_swap_spread_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_swap_spread_raw
+    dv01_derivatives:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EAR/DV01_Derivatives
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EAR/DV01_Derivatives
+      file_pattern: DV01_Derivatives*.xlsx
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "Sheet1"
+            header: 0
+          column_type_overrides:
+            INCEPTION_DATE: date
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_dv01_derivatives_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_dv01_derivatives_raw
+    dv01_fi:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EAR/DV01_FI
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EAR/DV01_FI
+      file_pattern: DV01_FI*.xlsx
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "Sheet1"
+            header: 0
+          column_type_overrides:
+            INCEPTION_DATE: date
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_dv01_fi_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_dv01_fi_raw
+    dv01_liab_post_hp:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EAR/DV01_Liab_PostHP
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EAR/DV01_Liab_PostHP
+      file_pattern: DV01_Liab_PostHP*.xlsx
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "Sheet1"
+            header: 0
+          column_type_overrides:
+            INCEPTION_DATE: date
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_dv01_liab_post_hp_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_dv01_liab_post_hp_raw
+    hedge_proportion:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EAR/Hedge_Proportion
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EAR/Hedge_Proportion
+      file_pattern: Hedge_Proportion*.xlsx
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "Sheet1"
+            header: 0
+          column_type_overrides:
+            EFFECTIVE_DATE: date
+            CASHFLOW_DATE: date
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_hedge_proportion_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_hedge_proportion_raw
+    liab_cf:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EAR/Liab_CF
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EAR/Liab_CF
+      file_pattern: Liab_CF*.xlsx
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "Sheet1"
+            header: 0
+          column_type_overrides:
+            AS_OF_DATE: date
+            DATE: date
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_liab_cf_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_liab_cf_raw
+    ha_fi_sensitivity_obs:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/EAR/HA_FI_Sensitivity_OBS
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/EAR/HA_FI_Sensitivity_OBS
+      file_pattern: HA_FI_Sensitivity_OBS*.xlsx
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "Sheet1"
+            header: 0
+          column_type_overrides:
+            REPORT_DATE: date
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_ha_fi_sensitivity_obs_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_ha_fi_sensitivity_obs_raw
+    bf_barraone_st_propagation:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/StressTest/ST_Propagation
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/StressTest/ST_Propagation
+      file_pattern: bf_barraone_st_propagation_*.xlsx
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "in"
+            header: 0
+          column_type_overrides:
+            Analysis_Dt: date
+            sys_eff_date_from: date
+            sys_eff_date_to: date
+      raw_table: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_bf_barraone_st_propagation_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${stresstest_prefix}_bf_barraone_st_propagation_raw
+    b1_Country_Currency_Mapping:
+      landing: ${adls.landing}/${env_table_prefix}RiskAnalyst/StressTest/B1_Country_Currency_Mapping
+      archive: ${adls.archive}/YYYYMMDD/${env_table_prefix}RiskAnalyst/StressTest/B1_Country_Currency_Mapping
+      file_pattern: Country_Currency_BarraOne*.xlsx
+      file_format: excel
+      sheets:
+        sheet1:
+          options:
+            sheet_name: "Country_Currency Codes"
+            header: 0
+          column_renames:
+            old_col_names: ["3-letter Country Code", "2-letter Country Code", "Currency Code"]
+            new_col_names: ["THREE_LETTER_COUNTRY_CODE", "TWO_LETTER_COUNTRY_CODE", "CURRENCY_CODE"]
+          column_drops: ["MAC SUPPORT", "UNNAMED: 6", "UNNAMED: 7", "UNNAMED: 8"]
+          forward_fill_columns: ["COUNTRY", "THREE_LETTER_COUNTRY_CODE", "TWO_LETTER_COUNTRY_CODE"]
+      raw_table: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_b1_country_currency_mapping
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${stresstest_prefix}_b1_country_currency_mapping
+
+  sqlmi:
+    rf_ec_shocks:
+      source_table: "drc.RF_EC_Shocks"
+      watermark_col: "LOAD_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_rf_ec_shocks_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_rf_ec_shocks_raw
+    rf_ec_final_shocks:
+      source_table: "drc.RF_EC_FinalShocks"
+      watermark_col: "LOAD_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_rf_ec_final_shocks_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_rf_ec_final_shocks_raw
+    rf_ear_shocks:
+      source_table: "drc.RF_EaR_Shocks"
+      watermark_col: "LOAD_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_rf_ear_shocks_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_rf_ear_shocks_raw
+    ir_bey:
+      source_table: "drc.IR_BEY"
+      watermark_col: "CreatedTimeStamp"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_ir_bey_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_ir_bey_raw
+    rf_ear_final_shocks:
+      source_table: "drc.RF_EaR_FinalShocks"
+      watermark_col: "LOAD_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_rf_ear_final_shocks_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_rf_ear_final_shocks_raw
+    rf_ear_pca_corrstats:
+      source_table: "drc.RF_EaR_PCA_CorrStats"
+      watermark_col: "LOAD_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_rf_ear_pca_corrstats_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_rf_ear_pca_corrstats_raw
+    rf_ear_pca_stats:
+      source_table: "drc.RF_EaR_PCA_Stats"
+      watermark_col: "LOAD_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_rf_ear_pca_stats_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_rf_ear_pca_stats_raw
+    rf_ec_pca:
+      source_table: "drc.RF_EC_PCA"
+      watermark_col: "LOAD_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_rf_ec_pca_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_rf_ec_pca_raw
+    rf_ec_pca_corrstats:
+      source_table: "drc.RF_EC_PCA_CorrStats"
+      watermark_col: "LOAD_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_rf_ec_pca_corrstats_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_rf_ec_pca_corrstats_raw
+    rf_ec_pca_resampled:
+      source_table: "drc.RF_EC_PCA_Resampled"
+      watermark_col: "LOAD_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_rf_ec_pca_resampled_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_rf_ec_pca_resampled_raw
+    rf_ec_pca_stats:
+      source_table: "drc.RF_EC_PCA_Stats"
+      watermark_col: "LOAD_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_rf_ec_pca_stats_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_rf_ec_pca_stats_raw
+    rf_ec_shocks_resampled:
+      source_table: "drc.RF_EC_Shocks_Resampled"
+      watermark_col: "LOAD_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_rf_ec_shocks_resampled_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_rf_ec_shocks_resampled_raw
+
+  deltashare:
+    alm_curve_rf_rates:
+      source_table: "gwam_dev_ds.inv_ga_typed.alm_curverates"
+      watermark_col: "LASTUPDATE"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_alm_curve_rf_rates_raw
+      partition_col: "CURVEINSTANCEDATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_alm_curve_rf_rates_raw
+    alm_curve_corp_rates:
+      source_table: "gwam_dev_ds.inv_ga_typed.alm_curvealmcorprates"
+      watermark_col: "LASTUPDATE"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_alm_curve_corp_rates_raw
+      partition_col: "CURVEINSTANCEDATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_alm_curve_corp_rates_raw
+    cube_derivatives_dcr_detail:
+      source_table: "gwam_dev_ds.inv_dal_eod.cube_derivatives_dcr_detail"
+      watermark_col: "DAL_CREATED_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_cube_derivatives_dcr_detail_raw
+      partition_col: "EFFECTIVE_DATE"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_cube_derivatives_dcr_detail_raw
+    alm_management_market_curve_rates:
+      source_table: "gwam_dev_ds.inv_dal_eod.alm_management_market_curve_rates"
+      watermark_col: "DAL_CREATED_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_alm_management_market_curve_rates_raw
+      partition_col: "CURVE_INSTANCE_DT"
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_alm_management_market_curve_rates_raw
+    cube_alm_management_portfolio_details:
+      source_table: "gwam_dev_ds.inv_dal_eod.cube_alm_management_portfolio_details"
+      watermark_col: "DAL_CREATED_TS"
+      raw_table: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_cube_alm_management_portfolio_details_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${stresstest_prefix}_cube_alm_management_portfolio_details_raw
+
+  web:
+    fx_rates:
+      url: https://ifshome.manulife.com/Reference/IFS%20Support%20WR/Monthly%20GAAP%20Rates%20Distribution%20file.csv
+      partition_col: "DATE"
+      protocol: "GET"
+      column_renames:
+        old_col_names: ["IS/RATE", "BS/RATE"]
+        new_col_names: ["IS_RATE", "BS_RATE"]
+      raw_table: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_ifs_fx_rates_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ec_table_prefix}_ifs_fx_rates_raw
+    genfund:
+      url: https://ifshome.manulife.com/Reference/Lawson%20Setup/GenfundAUAttributeValueReport.csv
+      partition_col: null
+      protocol: "GET"
+      column_cleanup:
+        normalize_all_columns: True
+      raw_table: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_genfund_raw
+      raw_ext_table_loc: ${adls.raw}/${env_table_prefix}${ear_table_prefix}_genfund_raw
+
+curation:
+  gam_sensitivities:
+    curation_table: ${schema.curation}.${env_table_prefix}${ear_forecast_table_prefix}_gam_curation
+    curation_ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_forecast_table_prefix}_gam_curation
+  alm:
+    curation_table: ${schema.curation}.${env_table_prefix}${ear_forecast_table_prefix}_alm_curation
+    curation_ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_forecast_table_prefix}_alm_curation
+  gam_segmentmapping:
+    curation_table: ${schema.curation}.${env_table_prefix}${ear_forecast_table_prefix}_segmentmapping_curation
+    curation_ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_forecast_table_prefix}_segmentmapping_curation
+  ear_forecasting:
+    curation_table:
+      blended_rates: ${schema.curation}.${env_table_prefix}${ear_forecast_table_prefix}_forecasting_blended_rates_curation
+      model_input: ${schema.curation}.${env_table_prefix}${ear_forecast_table_prefix}_forecasting_model_input_curation
+      sensitivity_grid: ${schema.curation}.${env_table_prefix}${ear_forecast_table_prefix}_forecasting_sensitivity_grid_curation
+      interpolation: ${schema.curation}.${env_table_prefix}${ear_forecast_table_prefix}_forecasting_interpolation_curation
+      rates: ${schema.curation}.${env_table_prefix}${ear_forecast_table_prefix}_forecasting_rates_curation
+    curation_ext_table_loc:
+      blended_rates: ${adls.curation}/${env_table_prefix}${ear_forecast_table_prefix}_forecasting_blended_rates_curation
+      model_input: ${adls.curation}/${env_table_prefix}${ear_forecast_table_prefix}_forecasting_model_input_curation
+      sensitivity_grid: ${adls.curation}/${env_table_prefix}${ear_forecast_table_prefix}_forecasting_sensitivity_grid_curation
+      interpolation: ${adls.curation}/${env_table_prefix}${ear_forecast_table_prefix}_forecasting_interpolation_curation
+      rates: ${adls.curation}/${env_table_prefix}${ear_forecast_table_prefix}_forecasting_rates_curation
+  market_scenarios_curation:
+    inputs:
+      market_raw: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_b1_market_scenario_raw
+      dim_currency: ${schema.semantic}.${env_table_prefix}Dim_Currency
+      dim_tenors: ${schema.semantic}.${env_table_prefix}Dim_Tenors
+    watermark_col: "INGESTION_TS"
+    curation_table: ${schema.curation}.${env_table_prefix}${stresstest_prefix}_b1_market_scenario
+    curation_ext_table_loc: ${adls.curation}/${env_table_prefix}${stresstest_prefix}_b1_market_scenario
+  factor_scenarios_curation:
+    inputs:
+      factor_raw: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_b1_factor_scenario_raw
+      country_currency_raw: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_b1_country_currency_mapping
+    watermark_col: "INGESTION_TS"
+    curation_table: ${schema.curation}.${env_table_prefix}${stresstest_prefix}_b1_factor_scenario
+    curation_ext_table_loc: ${adls.curation}/${env_table_prefix}${stresstest_prefix}_b1_factor_scenario
+  ha_partial_dv01_curation:
+    inputs:
+      dv01_fi: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_dv01_fi_raw
+      dv01_derivatives: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_dv01_derivatives_raw
+      dv01_liab_post_hp: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_dv01_liab_post_hp_raw
+      fx_rates: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_ifs_fx_rates_raw
+      heirarchy_mapping_latest: ${schema.semantic}.${env_table_prefix}irr_mapping_heirarchy_mapping_latest
+    watermark_col: "INGESTION_TS"
+    fx_currency_col: "CODE"
+    fx_rate_col: "BS_RATE"
+    fx_date_col: "DATE"
+    fx_date_fmt: "dd-MMM-yy" 
+    curation_table: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_partial_dv01
+    curation_ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_partial_dv01
+  ha_reporting_losses_curation:
+    inputs:
+      shocks_raw: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_rf_ear_shocks_raw
+      partial_dv01: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_partial_dv01
+    watermark_col: "INGESTION_TS"
+    curation_table: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_reporting_losses
+    curation_ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_reporting_losses
+
+engine:
+  ec:
+    shock_approximation:
+      inputs:
+        alm_curve_rf_rates:
+          table_name: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_alm_management_market_curve_rates_raw
+          watermark_col: "INGESTION_TS"
+        rf_ec_final_shocks:
+          table_name: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_rf_ec_final_shocks_raw
+          watermark_col: "INGESTION_TS"
+        ec_lower_bound:
+          table_name: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_lower_bound_raw
+          watermark_col: "INGESTION_TS"
+        mapping_dim_tenors:
+          table_name: ${schema.semantic}.${env_table_prefix}irr_mapping_dim_tenors
+          watermark_col: "INGESTION_TS"
+      step_forecast_date_rates:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_shock_approx_forecast_date_rates
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_shock_approx_forecast_date_rates
+      step_ratios:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_shock_approx_ratios
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_shock_approx_ratios
+      output:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_shock_approx_final
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_shock_approx_final
+    foward_curve_generator:
+      config:
+        selected_segments:
+          - ["US Guaranteed", "USD"]
+          - ["Canadian Guaranteed", "CAD"]
+          - ["MLI Non Par UL", "CAD"]
+          - ["CO. 43 CHINA - NON PAR (RMB)", "CNY"]
+          - ["Japan JPY Guaranteed", "JPY"]
+      inputs:
+        ir_bey:
+          table_name: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_ir_bey_raw
+        ref_portfolio_code:
+          table_name: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_reference_portfolio_code_raw
+        shock_approx:
+          table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_shock_approx_final
+        irr_mapping_dim_bey_row_tenor:
+          table_name: ${schema.semantic}.${env_table_prefix}irr_mapping_dim_bey_row_tenor
+          watermark_col: "INGESTION_TS"
+        mapping_dim_tenors:
+          table_name: ${schema.semantic}.${env_table_prefix}irr_mapping_dim_tenors
+          watermark_col: "INGESTION_TS"
+      step_generate_bey_rates:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_fwd_crv_bey_rates
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_fwd_crv_bey_rates
+      step_calculate_benchmark_yc:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_fwd_crv_benchmark_yc
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_fwd_crv_benchmark_yc
+      step_bootstrap_df:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_fwd_crv_bootstrap_df
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_fwd_crv_bootstrap_df
+      step_extrapolate_spot:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_fwd_crv_extrapolate_spot
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_fwd_crv_extrapolate_spot
+      output:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_fwd_crv_output
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_fwd_crv_output
+    daily_ec_forecast:
+      config:
+        other_rate: 0
+        override_llp_to_reference_portfolio:
+          - ["BERMUDA SURPLUS", "USD Risk Free"]
+      inputs:
+        parcurve:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_forecast_table_prefix}_parcurve_raw
+        reference_portfolio:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_forecast_table_prefix}_referenceportfolio_raw
+        heirarchy_mapping_latest:
+          table_name: ${schema.semantic}.${env_table_prefix}irr_mapping_heirarchy_mapping_latest
+          watermark_col: "INGESTION_TS"
+        gam_sensitivities:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_forecast_table_prefix}_gam_raw
+        iq_ec_forecast:
+          table_name: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_iq_ec_forecast_raw
+        shock_approx:
+          table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_shock_approx_final
+      step_parcurve_diff:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_daily_parcurve_diff
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_daily_parcurve_diff
+      step_blending:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_daily_blending
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_daily_blending
+      step_model_inputs:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_daily_model_inputs
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_daily_model_inputs
+      step_sensitivity_grid:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_daily_sensitivity_grid
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_daily_sensitivity_grid
+      step_cubic_spline_interpolation:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_daily_interpolation
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_daily_interpolation
+      step_forecast_rates:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_daily_rates
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_daily_rates
+      output:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_daily_sensitivity_output
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_daily_sensitivity_output
+    swap_spread_interest_rate_ec_curation:
+      inputs:
+        swap_spread:
+          table_name: ${schema.raw}.${env_table_prefix}${ec_table_prefix}_swap_spread_raw
+          watermark_col: "INGESTION_TS"
+        heirarchy_mapping_latest:
+          table_name: ${schema.semantic}.${env_table_prefix}irr_mapping_heirarchy_mapping_latest
+          watermark_col: "INGESTION_TS"
+      output:
+        table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_swap_spread_curation
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ec_table_prefix}_swap_spread_curation
+
+  ear:
+    csm_flooring:
+      config:
+        tenors_from_last: 4 # number of tenors to average shocks from last
+      inputs:
+        rf_ear_shocks:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_rf_ear_shocks_raw
+          watermark_col: "INGESTION_TS"
+        gam_sensitivities:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_forecast_table_prefix}_gam_raw
+          watermark_col: "Ingestion_TS"
+        gam_sensitivities_without_scenario:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_forecast_table_prefix}_gam_raw_without_scenario
+          watermark_col: "Ingestion_TS"
+        llp_to_target_currency:
+          table_name: ${schema.semantic}.${env_table_prefix}irr_mapping_llp_to_target_currency
+          watermark_col: "INGESTION_TS"
+        heirarchy_mapping_latest:
+          table_name: ${schema.semantic}.${env_table_prefix}irr_mapping_heirarchy_mapping_latest
+          watermark_col: "INGESTION_TS"
+      step_avg_shocks:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_csm_flooring_avg_shocks
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_csm_flooring_avg_shocks
+      step_earnings_sensitivity:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_csm_flooring_earnings_sensitivity
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_csm_flooring_earnings_sensitivity
+      staging:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_csm_flooring_staging
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_csm_flooring_staging
+      output_csm_pnl:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_csm_flooring_pnl_final
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_csm_flooring_pnl_final
+      output_reinsurance_pnl:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_reinsurance_pnl_final
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_reinsurance_pnl_final
+    tamsegment_exclusion_mapping:
+      inputs:
+        genfund:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_genfund_raw
+          watermark_col: "INGESTION_TS"
+        tamsegment:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_tamsegment_exclusion_mapping_raw
+          watermark_col: "INGESTION_TS"
+      output:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_exclusion_mapping_output
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_exclusion_mapping_output
+    non_ha:
+      inputs:
+        dv01_all_asset_derivative:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_dv01_all_asset_derivative_raw
+          watermark_col: "INGESTION_TS"
+        dim_tenors:
+          table_name: ${schema.semantic}.${env_table_prefix}Dim_Tenors
+          watermark_col: "INGESTION_TS"
+        rf_ear_shocks:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_rf_ear_shocks_raw
+          watermark_col: "INGESTION_TS"
+        irr_mapping_heirarchy_mapping_latest:
+          table_name: ${schema.semantic}.${env_table_prefix}irr_mapping_heirarchy_mapping_latest
+          watermark_col: "INGESTION_TS"
+        asset_summary_bd09:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_asset_summary_raw
+          watermark_col: "INGESTION_TS"
+        exlusion_mapping:
+          table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_exclusion_mapping_output
+          watermark_col: "INGESTION_TS"
+        avg_shocks:
+          table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_csm_flooring_avg_shocks
+          watermark_col: "INGESTION_TS"
+      step_sum_post_tax:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_nonha_sum_post_tax
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_nonha_sum_post_tax
+      step_losses:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_nonha_losses_without_gamma
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_nonha_losses_without_gamma
+      step_ir_gamma:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_nonha_ir_gamma
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_nonha_ir_gamma
+      step_losses_with_gamma:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_nonha_losses_with_gamma
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_nonha_losses_with_gamma
+      step_total_losses:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_nonha_losses
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_nonha_losses
+
+  stresstest:
+    asset_impact:
+      inputs:
+        portfolio_details:
+          table_name: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_cube_alm_management_portfolio_details_raw
+          watermark_col: "INGESTION_TS"
+        ga_b1:
+          table_name: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_ga_b1_raw
+          watermark_col: "INGESTION_TS"
+      step_asset_impact_ga:
+        table_name: ${schema.curation}.${env_table_prefix}${stresstest_prefix}_asset_impact_ga
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${stresstest_prefix}_asset_impact_ga
+      step_asset_impact_pe_alda:
+        table_name: ${schema.curation}.${env_table_prefix}${stresstest_prefix}_asset_impact_pe_alda
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${stresstest_prefix}_asset_impact_pe_alda
+    sca:
+      inputs:
+        st_propogation:
+          table_name: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_bf_barraone_st_propagation_raw
+          watermark_col: "INGESTION_TS"
+        country_currency_mapping:
+          table_name: ${schema.raw}.${env_table_prefix}${stresstest_prefix}_b1_country_currency_mapping
+          watermark_col: "INGESTION_TS"
+        market_scenario:
+          table_name: ${schema.curation}.${env_table_prefix}${stresstest_prefix}_b1_market_scenario
+          watermark_col: "INGESTION_TS"
+        factor_scenario:
+          table_name: ${schema.curation}.${env_table_prefix}${stresstest_prefix}_b1_factor_scenario
+          watermark_col: "INGESTION_TS"
+      step_st_propogation:
+          table_name: ${schema.curation}.${env_table_prefix}${stresstest_prefix}_b1_st_propogation
+          ext_table_loc: ${adls.curation}/${env_table_prefix}${stresstest_prefix}_b1_st_propogation
+      step_unified_shocks:
+          table_name: ${schema.curation}.${env_table_prefix}${stresstest_prefix}_unified_shocks
+          ext_table_loc: ${adls.curation}/${env_table_prefix}${stresstest_prefix}_unified_shocks
+      step_consolidated_shocks:
+          table_name: ${schema.curation}.${env_table_prefix}${stresstest_prefix}_consolidated_shocks
+          ext_table_loc: ${adls.curation}/${env_table_prefix}${stresstest_prefix}_consolidated_shocks
+
+
+
+cache:
+  irr_mapping_dim_date:
+    refresh_freq: daily # Allowed: daily, monthly, quarterly, semi-annunally, annunally
+    source_table_or_query: dbo.Dim_Date
+    target_table: ${schema.semantic}.${env_table_prefix}irr_mapping_dim_date
+    ext_table_loc: ${adls.semantic}/${env_table_prefix}irr_mapping_dim_date
+  irr_mapping_llp_to_target_currency:
+    refresh_freq: daily # Allowed: daily, monthly, quarterly, semi-annunally, annunally
+    source_table_or_query: |
+      select d_llp.Lowest_Level_Portfolio_Name, d_cur.Currency_Alpha_Code
+      from
+      dbo.Dim_Lowest_Level_Portfolio d_llp
+      join
+      dbo.Dim_Currency d_cur
+      on d_llp.Target_Currency_Key = d_cur.Currency_Key
+      where d_llp.Is_Active = 1 and d_cur.Is_Active = 1 and d_cur.Currency_Alpha_Code is not NULL
+    target_table: ${schema.semantic}.${env_table_prefix}irr_mapping_llp_to_target_currency
+    ext_table_loc: ${adls.semantic}/${env_table_prefix}irr_mapping_llp_to_target_currency
+  irr_mapping_heirarchy_mapping_latest:
+    refresh_freq: daily # Allowed: daily, monthly, quarterly, semi-annunally, annunally
+    source_table_or_query: dbo.vHeirarchyMappingLatest
+    target_table: ${schema.semantic}.${env_table_prefix}irr_mapping_heirarchy_mapping_latest
+    ext_table_loc: ${adls.semantic}/${env_table_prefix}irr_mapping_heirarchy_mapping_latest
+  irr_mapping_dim_forecast_date:
+    refresh_freq: daily # Allowed: daily, monthly, quarterly, semi-annunally, annunally
+    source_table_or_query: dbo.Dim_Forecast_Date
+    target_table: ${schema.semantic}.${env_table_prefix}irr_mapping_dim_forecast_date
+    ext_table_loc: ${adls.semantic}/${env_table_prefix}irr_mapping_dim_forecast_date
+  irr_mapping_dim_tenors:
+    refresh_freq: daily # Allowed: daily, monthly, quarterly, semi-annunally, annunally
+    source_table_or_query: dbo.Dim_Tenors
+    target_table: ${schema.semantic}.${env_table_prefix}irr_mapping_dim_tenors
+    ext_table_loc: ${adls.semantic}/${env_table_prefix}irr_mapping_dim_tenors
+  irr_mapping_dim_bey_row_tenor:
+    refresh_freq: daily # Allowed: daily, monthly, quarterly, semi-annunally, annunally
+    source_table_or_query: dbo.Dim_IR_BEY_Row_Tenor_Mapping
+    target_table: ${schema.semantic}.${env_table_prefix}irr_mapping_dim_bey_row_tenor
+    ext_table_loc: ${adls.semantic}/${env_table_prefix}irr_mapping_dim_bey_row_tenor
