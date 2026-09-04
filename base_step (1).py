@@ -28,8 +28,8 @@ class RDABaseStep(ABC):
         return self._uc.read_latest(table_name)
     
     def _get_date_ctx(self):
-        today_key = datetime.now(tz=ZoneInfo("America/Toronto")).strftime("%Y%m%d")
-        #today_key = date(2026, 5, 11).strftime("%Y%m%d")
+        #today_key = datetime.now(tz=ZoneInfo("America/Toronto")).strftime("%Y%m%d")
+        today_key = date(2026, 5, 11).strftime("%Y%m%d")
         self._logger.info(f"Today's date key is {today_key}")
         df = self._uc.read_query(
         f"""
