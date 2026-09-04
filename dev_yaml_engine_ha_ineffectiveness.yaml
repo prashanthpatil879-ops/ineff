@@ -1,0 +1,37 @@
+# Add under `engine:` -> `ear:` in src/rda/configs/dev.yaml, after the non_ha
+# block. Mirror into qa.yaml and uat.yaml.
+#
+# REMOVE the two now-superseded curation blocks, since the logic has moved to the
+# engine layer:
+#     curation.ha_partial_dv01_curation
+#     curation.ha_reporting_losses_curation
+
+    ha_ineffectiveness:
+      inputs:
+        dv01_fi:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_dv01_fi_raw
+          watermark_col: "INGESTION_TS"
+        dv01_derivatives:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_dv01_derivatives_raw
+          watermark_col: "INGESTION_TS"
+        dv01_liab_post_hp:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_dv01_liab_post_hp_raw
+          watermark_col: "INGESTION_TS"
+        fx_rates:
+          table_name: ${schema.curation}.${env_table_prefix}${ec_table_prefix}_ifs_fx_rates
+          watermark_col: "INGESTION_TS"
+        irr_mapping_heirarchy_mapping_latest:
+          table_name: ${schema.semantic}.${env_table_prefix}irr_mapping_heirarchy_mapping_latest
+          watermark_col: "INGESTION_TS"
+        rf_ear_shocks:
+          table_name: ${schema.raw}.${env_table_prefix}${ear_table_prefix}_rf_ear_shocks_raw
+          watermark_col: "INGESTION_TS"
+      step_dv01_unpivot:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_ha_dv01_unpivot
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_ha_dv01_unpivot
+      step_partial_dv01:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_partial_dv01
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_partial_dv01
+      step_losses:
+        table_name: ${schema.curation}.${env_table_prefix}${ear_table_prefix}_ha_losses
+        ext_table_loc: ${adls.curation}/${env_table_prefix}${ear_table_prefix}_ha_losses
